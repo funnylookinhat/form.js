@@ -343,11 +343,11 @@ $(function () {
     }
 
     if( transition == 'slide' ) {
-      return $target.slideUp(callback);
+      return $target.slideUp().promise().done(callback);
     }
 
     if( transition == 'fade' ) {
-      return $target.fadeOut(callback);
+      return $target.fadeOut().promise().done(callback);
     }
   }
 
@@ -362,11 +362,11 @@ $(function () {
     }
 
     if( transition == 'slide' ) {
-      return $target.slideDown(callback);
+      return $target.slideDown().promise().done(callback);
     }
 
     if( transition == 'fade' ) {
-      return $target.fadeIn(callback);
+      return $target.fadeIn().promise().done(callback);
     }
   }
 });
