@@ -1,0 +1,89 @@
+<!-- 
+	All AJAX forms assume a return object like this:
+	{
+		success: (boolean),
+		error: (string),
+		data: {
+			views: {
+
+			}
+		}
+	}
+
+	Every form submission has the following lifecycle:
+	- Remove any error messages to error target (default is form itself)
+	- Add loading class to target (default is the form itself)
+	- On success:
+		- Hide any necessary targets.
+		- Show any necessary targets.
+		- Load callback views to appropriate targets.
+		- Hide any necessary targets.
+		- Show any necessary targets.
+	- On error:
+		- Hide any necessary targets.
+		- Show any necessary targets
+		- Load error message into error target
+		- Hide any necessary targets.
+		- Show any necessary targets.
+
+	- Any HTML that is sent back in views can be loaded to specific targets with ( [viewname] is dictionary key )
+		- data-form-ajax-success-view-[viewname]-replace-target
+		- data-form-ajax-success-view-[viewname]-prepend-target
+		- data-form-ajax-success-view-[viewname]-append-target
+	
+	Forms can be submitted with the following attributes on any <a> or <input>
+		- data-form-enter-submit submits on enter
+		- data-form-click-submit submits on click
+		- data-form-submit-action defines the action the form should have on submission
+		- data-form-submit-fallback-action defines the action to take if FormData is not supported by the browser ( only required for file upload submissions )
+		- data-form-submit-input-name an input to change the value of before submission
+		- data-form-submit-input-value the value to change the input to
+-->
+
+<!-- User Management Example -->
+
+<!-- 
+	Clicking either link submits the form to a specific URL 
+	On success - receives an HTML response in response.data.views.user
+	Replaces "#manage-user-1-target" with the new user view.
+-->
+
+<form
+	data-form-ajax="true"
+	data-form-ajax-loading-target="#manage-user-1-target"
+	data-form-ajax-result-target="#manage-user-1-target"
+	data-form-ajax-success-view-user-replace-target="#manage-user-1-target"
+	>
+	<input type="hidden" name="user_id" />
+	<div class="user" id="manage-user-1-target">
+		User 1 
+		<a 
+			href="#"
+			data-form-click-submit="true"
+			data-form-submit-action="/manage/users/delete"
+			data-form-submit-input-name="user_id"
+			data-form-submit-input-value="1"
+			>
+			Delete User
+		</a>
+		<a 
+			href="#"
+			data-form-click-submit="true"
+			data-form-submit-action="/manage/users/resetpassword"
+			data-form-submit-input-name="user_id"
+			data-form-submit-input-value="1"
+			>
+			Reset Password
+		</a>
+		<a 
+			href="#"
+			data-form-click-submit="true"
+			data-form-submit-action="/manage/users/loadeditform"
+			data-form-submit-input-name="user_id"
+			data-form-submit-input-value="1"
+			>
+			Edit User Info
+		</a>
+	</div>
+</form>
+

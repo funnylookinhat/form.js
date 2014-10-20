@@ -22,6 +22,62 @@ $(function () {
     }
   });
 
+  setInterval(function () {
+    setupFormTimeouts();
+  }, 5000);
+
+  function setupFormTimeouts() {
+    $('[data-form-timeout-submit]').each(function () {
+      var $form = $(this);
+      var timeoutMillis = $form.attr('data-form-timeout-submit');
+      $form.removeAttr('data-form-timeout-submit');
+
+      if( ! timeoutMillis.length ) {
+        return;
+      }
+
+      var timeoutFormId = ''+Math.floor(Math.random() * 999999999)+''+Date.now();
+      $form.attr('data-form-timeout-id',timeoutFormId);
+
+      setTimeout(function () {
+        timeoutFormSubmit(timeoutFormId);
+      }, parseFloat(timeoutMillis));
+    });
+  }
+
+  function timeoutFormSubmit(timeoutId) {
+    var $form = $('[data-form-timeout-id="'+timeoutId+'"]');
+    if( ! $form.length ) {
+      return;
+    }
+
+    if( $form.attr('data-form-timeout-submit-input-name') &&
+        $form.attr('data-form-timeout-submit-input-value') ) {
+      $form
+        .find('input[name="'+$form.attr('data-form-timeout-submit-input-name')+'"]')
+        .val($form.attr('data-form-timeout-submit-input-value'));
+    }
+
+    if( $form.attr('data-form-timeout-submit-action') ) {
+      $form.attr('action', $form.attr('data-form-timeout-submit-action'));
+    }
+
+    $loadingTarget = false;
+    if( $form.attr('data-form-loading-target') ) {
+      $loadingTarget = $($form.attr('data-form-result-target'));
+    } else {
+      $loadingTarget = $form.parent();
+    }
+
+    $loadingTarget.addClass('loading');
+    
+    if( $form.is('[data-form-ajax]') ) {
+      submitFormAjax($form);
+    } else {
+      $form.submit();
+    }
+  }
+
   function handleFormSubmit($actor) {
     $form = $actor.closest('form');
 
@@ -66,12 +122,6 @@ $(function () {
       hideTarget($target, 'slide', function () {
         $target.remove();
       });
-      // REPLACED
-      /*
-      $(this).slideUp(function () {
-        $(this).remove();
-      });
-      */
     });
 
     // TODO - DETECT IE
@@ -112,15 +162,12 @@ $(function () {
       processData: false,
       contentType: false,
       dataType: 'json',
-
       success: function (response) {
         return handleFormAjaxSuccess(response, $form);
       },
-
       error: function (response, message, error) {
         return handleFormAjaxError(response, message, error, $form);
       }
-
     });
 
   }
@@ -186,13 +233,6 @@ $(function () {
         return ajaxSuccessPreShow(response, $form);
       }
     );
-
-    // REPLACED
-    /*
-    $($form.attr('data-form-ajax-success-pre-hide-target')).slideUp(function () {
-      return ajaxSuccessPreShow(response, $form);
-    });
-    */
   }
 
   function ajaxSuccessPreShow(response, $form) {
@@ -207,12 +247,6 @@ $(function () {
         return ajaxSuccessLoadViews(response, $form);
       }
     );
-
-    /*
-    $($form.attr('data-form-ajax-success-pre-show-target')).slideDown(function () {
-      return ajaxSuccessLoadViews(response, $form);
-    });
-    */
   }
 
   function ajaxSuccessLoadViews(response, $form) {
@@ -256,19 +290,11 @@ $(function () {
             $newView.trigger($form.attr('data-form-ajax-success-view-'+viewIndex+'-fire-event'));
           }
         );
-        /*
-        $newView.slideDown(function () {
-          $newView.trigger($form.attr('data-form-ajax-success-view-'+viewIndex+'-fire-event'));
-        });
-        */
       } else {
         showTarget(
           $newView, 
           $form.attr('data-form-transition')
         );
-        /*
-        $newView.slideDown();
-        */
       }
     }
 
@@ -283,12 +309,6 @@ $(function () {
         ajaxSuccessPostHide(response, $form);
       }
     );
-
-    /*
-    $slideDownQueue.slideDown(function () {
-      ajaxSuccessPostHide(response, $form);
-    });
-    */
   }
 
   function ajaxSuccessPostHide(response, $form) {
@@ -303,12 +323,6 @@ $(function () {
         return ajaxSuccessPostShow(response, $form);
       }
     );
-
-    /*
-    $($form.attr('data-form-ajax-success-post-hide-target')).slideUp(function () {
-      return ajaxSuccessPostShow(response, $form);
-    });
-    */
   }
 
   function ajaxSuccessPostShow(response, $form) {
@@ -323,12 +337,6 @@ $(function () {
         return;
       }
     );
-
-    /*
-    $($form.attr('data-form-ajax-success-post-show-target')).slideDown(function () {
-      return;
-    });
-    */
   }
 
   // Helpers for UI
