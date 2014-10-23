@@ -115,15 +115,9 @@ $(function () {
     } else {
       $resultTarget = $form.parent();
     }
-    $alerts = $resultTarget.find('.alert-box');
-    
-    $alerts.each(function () {
-      $target = $(this);
-      hideTarget($target, 'slide', function () {
-        $target.remove();
-      });
-    });
 
+    formRemoveAllAlerts($resultTarget, $form.attr('data-form-transition'));
+    
     // TODO - DETECT IE
     // if (!("FormData" in window)) { }
 
@@ -188,7 +182,7 @@ $(function () {
     }
 
     if( ! response.success ) {
-      return addAlert($resultTarget, response.error, 'error');
+      return formAddAlert($resultTarget, response.error, 'error', $form.attr('data-form-transition'));
     }
 
     if( response.callback_url ) {
@@ -218,7 +212,7 @@ $(function () {
     }
 
     // Consider removing this after testing.
-    return addAlert($resultTarget, 'Request error: '+message, 'info');
+    return formAddAlert($resultTarget, 'Request error: '+message, 'info', $form.attr('data-form-transition'));
   }
 
   function ajaxSuccessPreHide(response, $form) {
@@ -226,7 +220,7 @@ $(function () {
       return ajaxSuccessPreShow(response, $form);
     }
 
-    hideTarget(
+    formHideTarget(
       $($form.attr('data-form-ajax-success-pre-hide-target')), 
       $form.attr('data-form-transition'), 
       function () {
@@ -240,7 +234,7 @@ $(function () {
       return ajaxSuccessLoadViews(response, $form);
     }
 
-    showTarget(
+    formShowTarget(
       $($form.attr('data-form-ajax-success-pre-show-target')), 
       $form.attr('data-form-transition'), 
       function () {
@@ -259,7 +253,7 @@ $(function () {
       } else {
         $resultTarget = $form.parent();
       }
-      addAlert($resultTarget, $response.message, 'success');
+      formAddAlert($resultTarget, response.message, 'success', $form.attr('data-form-transition'));
     }
 
     // Loop other views.
@@ -283,7 +277,7 @@ $(function () {
       }
 
       if( $form.attr('data-form-ajax-success-view-'+viewIndex+'-fire-event') ) {
-        showTarget(
+        formShowTarget(
           $newView, 
           $form.attr('data-form-transition'), 
           function () {
@@ -291,7 +285,7 @@ $(function () {
           }
         );
       } else {
-        showTarget(
+        formShowTarget(
           $newView, 
           $form.attr('data-form-transition')
         );
@@ -302,7 +296,7 @@ $(function () {
       return ajaxSuccessPostHide(response, $form);
     }
 
-    showTarget(
+    formShowTarget(
       $slideDownQueue, 
       $form.attr('data-form-transition'), 
       function () {
@@ -316,7 +310,7 @@ $(function () {
       return ajaxSuccessPostShow(response, $form);
     }
 
-    hideTarget(
+    formHideTarget(
       $($form.attr('data-form-ajax-success-post-hide-target')), 
       $form.attr('data-form-transition'), 
       function () {
@@ -330,7 +324,7 @@ $(function () {
       return;
     }
 
-    showTarget(
+    formShowTarget(
       $($form.attr('data-form-ajax-success-post-show-target')), 
       $form.attr('data-form-transition'), 
       function () {
@@ -340,7 +334,35 @@ $(function () {
   }
 
   // Helpers for UI
-  function hideTarget($target, transition, callback) {
+  
+  function formAddAlert($target, alertText, alertClass, transition, callback) {
+    if( ! alertClass ) { alertClass = 'info'; }
+    if( ! callback ) { callback = function () {}; }
+    var $alert = $('<div data-alert="" class="alert-box '+alertClass+'">'+alertText+'<a href="#" class="close">×</a></div>');
+    $alert.css('display','none');
+    $target.prepend($alert);
+    formShowTarget(
+      $alert,
+      transition,
+      callback
+    );
+  }
+
+  // Remove immediate alert children from $target
+  function formRemoveAllAlerts($target, transition) {
+    $target.children('.alert-box').each(function () {
+      var $alertBox = $(this);
+      formHideTarget(
+        $alertBox,
+        transition,
+        function () {
+          $alertBox.remove();
+        }
+      );
+    });
+  }
+
+  function formHideTarget($target, transition, callback) {
     if( ! transition ||
         Array('slide','fade').indexOf(transition) < 0 ) {
       transition = 'slide';
@@ -359,7 +381,7 @@ $(function () {
     }
   }
 
-  function showTarget($target, transition, callback) {
+  function formShowTarget($target, transition, callback) {
     if( ! transition ||
         Array('slide','fade').indexOf(transition) < 0 ) {
       transition = 'slide';
