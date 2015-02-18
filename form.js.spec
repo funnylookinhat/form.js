@@ -18,6 +18,7 @@ __<form>__
 - data-form-ajax-success-post-show-target -> An ID to slideDown after replacing the form.
 - data-form-ajax-success-callback -> A javascript function to run.
 
+// The following are not implemented yet.
 - data-form-ajax-error-pre-show-target -> An ID to slideUp after a failed response.
 - data-form-ajax-error-pre-show-target -> An ID to slideDown after a failed response.
 - data-form-ajax-error-post-hide-target -> An ID to slideUp after failed response adds an alert.
