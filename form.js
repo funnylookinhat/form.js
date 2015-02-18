@@ -26,9 +26,34 @@ $(function () {
     setupFormTimeouts();
   }, 5000);
 
+  $('[data-form-onload-submit]').each(function () {
+    var $form = $(this);
+    
+    $loadingTarget = false;
+    if( $form.attr('data-form-loading-target') ) {
+      $loadingTarget = $($form.attr('data-form-result-target'));
+    } else {
+      $loadingTarget = $form.parent();
+    }
+
+    $loadingTarget.addClass('loading');
+    
+    if( $form.is('[data-form-ajax]') ) {
+      submitFormAjax($form);
+    } else {
+      $form.submit();
+    }
+  });
+
   function setupFormTimeouts() {
     $('[data-form-timeout-submit]').each(function () {
       var $form = $(this);
+
+      if( $form.attr('[data-form-onload-submit]') &&
+          $form.attr('[data-form-onload-submit]').length ) {
+        return;
+      }
+
       var timeoutMillis = $form.attr('data-form-timeout-submit');
       $form.removeAttr('data-form-timeout-submit');
 
@@ -60,6 +85,10 @@ $(function () {
 
     if( $form.attr('data-form-timeout-submit-action') ) {
       $form.attr('action', $form.attr('data-form-timeout-submit-action'));
+
+      if( $form.attr('data-form-timeout-submit-action-fallback') ) {
+        $form.attr('action-fallback', $actor.attr('data-form-timeout-submit-action-fallback'));
+      }
     }
 
     $loadingTarget = false;
@@ -90,6 +119,10 @@ $(function () {
 
     if( $actor.attr('data-form-submit-action') ) {
       $form.attr('action', $actor.attr('data-form-submit-action'));
+
+      if( $actor.attr('data-form-submit-action-fallback') ) {
+        $form.attr('action-fallback', $actor.attr('data-form-submit-action-fallback'));
+      }
     }
 
     $loadingTarget = false;
@@ -117,14 +150,76 @@ $(function () {
     }
 
     formRemoveAllAlerts($resultTarget, $form.attr('data-form-transition'));
-    
-    // TODO - DETECT IE
-    // if (!("FormData" in window)) { }
 
+    if( $form.find('input[type="file"]').length ) {
+      
+      // If we don't support FormData we have to try to use the fallback.
+      if( ! ("FormData" in window) ) {
+        return submitFormAjaxFileFallback($form);
+      }
+
+      return submitFormAjaxFileFormData($form);
+    }
+
+    // $form.serialize() is a piece.
+    var formData = {};
+
+    $form.find('input[type="hidden"], input[type="text"], input[type="password"], input[type="date"], input[type="datetime"], input[type="datetime-local"], input[type="month"], input[type="week"], input[type="email"], input[type="number"], input[type="search"], input[type="tel"], input[type="time"], input[type="url"], select, textarea').each(function () {
+      formData[$(this).attr('name')] = $(this).val();
+    });
+
+    var checkboxValues = {};
+    $form.find('input[type="checkbox"], input[type="radio"]').each(function () {
+      if( $(this).is(':checked') ) {
+        if( ! checkboxValues[$(this).attr('name')] ) {
+          checkboxValues[$(this).attr('name')] = $(this).val();
+        } else {
+          checkboxValues[$(this).attr('name')] = checkboxValues[$(this).attr('name')]+','+$(this).val();
+        }
+      }
+    });
+
+    for( checkboxName in checkboxValues ) {
+      formData[checkboxName] = checkboxValues[checkboxName];
+    }
+
+    $.ajax({
+      url: $form.attr('action'),
+      type: "POST",
+      data: $.param(formData),
+      dataType: 'json',
+      success: function (response) {
+        return handleFormAjaxSuccess(response, $form);
+      },
+      error: function (response, message, error) {
+        return handleFormAjaxError(response, message, error, $form);
+      }
+    });
+  }
+
+  function submitFormAjaxFileFallback ($form) {
+    if( ! $form.attr('action-fallback') ) {
+      $resultTarget = false;
+      if( $form.attr('data-form-result-target') ) {
+        $resultTarget = $($form.attr('data-form-result-target'));
+      } else {
+        $resultTarget = $form.parent();
+      }
+      return formAddAlert($resultTarget, 'Error: missing fallback request target.  Please contact support.', 'error', $form.attr('data-form-transition'));
+    }
+
+    $form.attr('action', $form.attr('action-fallback'));
+    $form.attr('enctype', 'multipart/form-data');
+    $form.prepend($('<input type="hidden" name="MAX_FILE_SIZE" value="25000000" />'));
+    $form.attr('method', 'POST');
+    $form.submit();
+  }
+
+  function submitFormAjaxFileFormData ($form) {
     var formData = new FormData();
     formData.append('MAX_FILE_SIZE', '25000000');
 
-    $form.find('input[type="hidden"], input[type="text"], input[type="email"], input[type="tel"], input[type="password"], select, textarea').each(function () {
+    $form.find('input[type="hidden"], input[type="text"], input[type="password"], input[type="date"], input[type="datetime"], input[type="datetime-local"], input[type="month"], input[type="week"], input[type="email"], input[type="number"], input[type="search"], input[type="tel"], input[type="time"], input[type="url"], select, textarea').each(function () {
       formData.append($(this).attr('name'), $(this).val());
     });
 
@@ -163,10 +258,18 @@ $(function () {
         return handleFormAjaxError(response, message, error, $form);
       }
     });
-
   }
 
   function handleFormAjaxSuccess(response, $form) {
+    if( response.callback_url ) {
+      if( response.callback_url == window.location.href ) {
+        window.location.reload(true);
+      } else {
+        window.location.href = response.callback_url;
+      }
+      return;
+    }
+
     if( $form.attr('data-form-loading-target') ) {
       $loadingTarget = $($form.attr('data-form-result-target'));
     } else {
@@ -183,14 +286,6 @@ $(function () {
 
     if( ! response.success ) {
       return formAddAlert($resultTarget, response.error, 'error', $form.attr('data-form-transition'));
-    }
-
-    if( response.callback_url ) {
-      if( response.callback_url == window.location.href ) {
-        window.location.reload(true);
-      } else {
-        window.location.href = response.callback_url;
-      }
     }
 
     return ajaxSuccessPreHide(response, $form);
@@ -321,16 +416,26 @@ $(function () {
 
   function ajaxSuccessPostShow(response, $form) {
     if( ! $form.attr('data-form-ajax-success-post-show-target') ) {
-      return;
+      return ajaxSuccessCallback(response, $form);
     }
 
     formShowTarget(
       $($form.attr('data-form-ajax-success-post-show-target')), 
       $form.attr('data-form-transition'), 
       function () {
-        return;
+        return ajaxSuccessCallback(response, $form);
       }
     );
+  }
+
+  function ajaxSuccessCallback(response, $form) {
+    if( ! $form.attr('data-form-ajax-success-callback') ) {
+      return;
+    }
+
+    window[$form.attr('data-form-ajax-success-callback')](response, $form);
+
+    return;
   }
 
   // Helpers for UI
